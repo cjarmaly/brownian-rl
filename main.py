@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from processes.gbm import simulate_gbm
 from processes.oh import simulate_ou
+from envs.american_option import AmericanOption
+
 """
 Simulate a Geometric Brownian Motion (GBM) and plot the paths. 
 
@@ -23,7 +25,7 @@ About costs:
 1. No transaction costs
 2. No restricitons on short selling 
 """
-
+"""
 S = simulate_gbm(S0=100, mu=0.05, sigma=0.2, T=1.0, n_steps=1000, n_paths=1000)
 t = np.linspace(0, 1.0, 1001)
 
@@ -33,6 +35,7 @@ plt.xlabel('Time (t)')
 plt.ylabel('Stock Price (S_t)')
 plt.title('GBM Simulation - 50 paths')
 plt.show()
+"""
 
 """
 Simulate a Ornstein-Uhlenbeck process and plot the paths. 
@@ -47,6 +50,7 @@ and not just the current time step. This helps model more realistic processes wi
 a fundamental value, preventing drifts to infinity.
 """
 
+"""
 X = simulate_ou(X0=0, theta=2.0, mu=0.0, sigma=0.5, T=5.0, n_steps=1000, n_paths=50)
 t = np.linspace(0, 5.0, 1001)
 
@@ -58,3 +62,18 @@ plt.ylabel('Process Value (X_t)')
 plt.title('OH Simulation - 50 paths')
 plt.legend()
 plt.show()
+"""
+"""
+Verify American Option environment works as expected.
+"""
+
+env = AmericanOption(S0=100, K=100, T=1.0, r=0.05, sigma=0.2, n_steps=252)
+obs, info = env.reset()
+print("Initial observation:", obs)
+
+for _ in range(10):
+    action = env.action_space.sample()
+    obs, reward, terminated, truncated, info = env.step(action)
+    print(f"observation: {obs}, reward: {reward:.2f}, terminated: {terminated}")
+    if terminated:
+        break
