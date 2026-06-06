@@ -3,6 +3,7 @@ import numpy as np
 from processes.gbm import simulate_gbm
 from processes.oh import simulate_ou
 from envs.american_option import AmericanOption
+from agents.dqn import train_dqn
 
 """
 Simulate a Geometric Brownian Motion (GBM) and plot the paths. 
@@ -68,6 +69,8 @@ Verify American Option environment works as expected.
 """
 
 env = AmericanOption(S0=100, K=100, T=1.0, r=0.05, sigma=0.2, n_steps=252)
+
+"""
 obs, info = env.reset()
 print("Initial observation:", obs)
 
@@ -77,3 +80,6 @@ for _ in range(10):
     print(f"observation: {obs}, reward: {reward:.2f}, terminated: {terminated}")
     if terminated:
         break
+"""
+
+model = train_dqn(env) # train DQN agent on the environment
