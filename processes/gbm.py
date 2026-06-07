@@ -13,6 +13,16 @@ def simulate_gbm(S0, mu, sigma, T, n_steps, n_paths):
     t = np.linspace(0, T, n_steps +1)
     return S0 * np.exp((mu - 0.5 * sigma**2) * t.reshape(1, -1) + sigma * W)
 
+def simulate_gbm_from_brownian(W, S0, mu, sigma, T):
+    """
+    Construct GBM paths from pre-simulated Brownian paths.
+    W   : (n_paths, n_steps+1) Brownian paths
+    returns: (n_paths, n_steps+1) GBM paths
+    """
+    _, n_steps_1 = W.shape
+    t = np.linspace(0, T, n_steps_1).reshape(1, -1)
+    return S0 * np.exp((mu - 0.5 * sigma**2) * t + sigma * W)
+
 if __name__ == "__main__":
     S = simulate_gbm(S0=100, mu=0.05, sigma=0.2, T=1, n_steps=100, n_paths=1000)
     
@@ -25,3 +35,4 @@ if __name__ == "__main__":
     # Check expected price at T should be ~S0 * exp(mu * T)
     expected_price = 100 * np.exp(0.05)
     print(np.mean(S[:, -1]), expected_price)
+
