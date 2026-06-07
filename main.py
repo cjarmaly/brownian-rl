@@ -4,6 +4,7 @@ from processes.gbm import simulate_gbm
 from processes.oh import simulate_ou
 from envs.american_option import AmericanOption
 from agents.dqn import train_dqn
+from agents.ls import longstaff_schwartz
 
 """
 Simulate a Geometric Brownian Motion (GBM) and plot the paths. 
@@ -26,17 +27,17 @@ About costs:
 1. No transaction costs
 2. No restricitons on short selling 
 """
-"""
-S = simulate_gbm(S0=100, mu=0.05, sigma=0.2, T=1.0, n_steps=1000, n_paths=1000)
-t = np.linspace(0, 1.0, 1001)
 
-plt.figure(figsize=(12, 6))
-plt.plot(t, S[:50, :].T, alpha=0.3, linewidth=0.8)
-plt.xlabel('Time (t)')
-plt.ylabel('Stock Price (S_t)')
-plt.title('GBM Simulation - 50 paths')
-plt.show()
-"""
+# S = simulate_gbm(S0=100, mu=0.05, sigma=0.2, T=1.0, n_steps=1000, n_paths=1000)
+# t = np.linspace(0, 1.0, 1001)
+
+# plt.figure(figsize=(12, 6))
+# plt.plot(t, S[:50, :].T, alpha=0.3, linewidth=0.8)
+# plt.xlabel('Time (t)')
+# plt.ylabel('Stock Price (S_t)')
+# plt.title('GBM Simulation - 50 paths')
+# plt.show()
+
 
 """
 Simulate a Ornstein-Uhlenbeck process and plot the paths. 
@@ -51,36 +52,39 @@ and not just the current time step. This helps model more realistic processes wi
 a fundamental value, preventing drifts to infinity.
 """
 
-"""
-X = simulate_ou(X0=0, theta=2.0, mu=0.0, sigma=0.5, T=5.0, n_steps=1000, n_paths=50)
-t = np.linspace(0, 5.0, 1001)
 
-plt.figure(figsize=(12, 6))
-plt.plot(t, X[:50, :].T, alpha=0.3, linewidth=0.8)
-plt.axhline(y=0, color='red', linestyle='--', linewidth=1.5, label='long-run mean')
-plt.xlabel('Time (t)')
-plt.ylabel('Process Value (X_t)')
-plt.title('OH Simulation - 50 paths')
-plt.legend()
-plt.show()
-"""
+# X = simulate_ou(X0=0, theta=2.0, mu=0.0, sigma=0.5, T=5.0, n_steps=1000, n_paths=50)
+# t = np.linspace(0, 5.0, 1001)
+
+# plt.figure(figsize=(12, 6))
+# plt.plot(t, X[:50, :].T, alpha=0.3, linewidth=0.8)
+# plt.axhline(y=0, color='red', linestyle='--', linewidth=1.5, label='long-run mean')
+# plt.xlabel('Time (t)')
+# plt.ylabel('Process Value (X_t)')
+# plt.title('OH Simulation - 50 paths')
+# plt.legend()
+# plt.show()
+
 """
 Verify American Option environment works as expected.
 """
 
-env = AmericanOption(S0=100, K=100, T=1.0, r=0.05, sigma=0.2, n_steps=252)
+# shared parameters
+S0, K, T, r, sigma, n_steps, n_paths = 100, 100, 1.0, 0.05, 0.2, 252, 10000
 
-"""
-obs, info = env.reset()
-print("Initial observation:", obs)
+env = AmericanOption(S0=S0, K=K, T=T, r=r, sigma=sigma, n_steps=n_steps)
 
-for _ in range(10):
-    action = env.action_space.sample()
-    obs, reward, terminated, truncated, info = env.step(action)
-    print(f"observation: {obs}, reward: {reward:.2f}, terminated: {terminated}")
-    if terminated:
-        break
-"""
+
+# obs, info = env.reset()
+# print("Initial observation:", obs)
+
+# for _ in range(10):
+#     action = env.action_space.sample()
+#     obs, reward, terminated, truncated, info = env.step(action)
+#     print(f"observation: {obs}, reward: {reward:.2f}, terminated: {terminated}")
+#     if terminated:
+#         break
+
 
 model = train_dqn(env) # train DQN agent on the environment
 
@@ -100,3 +104,15 @@ for _ in range(n_eval):
 
 print(f"DQN mean payoff: {np.mean(rewards):.2f}")
 print(f"DQN std payoff: {np.std(rewards):.2f}")
+
+"""
+Compare DQN and LSM prices.
+"""
+
+# simulate paths for LSM
+paths = simulate_gbm(S0=S0, mu=r, sigma=sigma, T=T, n_steps=n_steps, n_paths=n_paths)
+
+# LSM price
+lsm_price = longstaff_schwartz(paths, K=K, r=r, dt=T/n_steps)
+print(f"LSM price:  {lsm_price:.4f}")
+
