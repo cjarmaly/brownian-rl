@@ -83,3 +83,20 @@ for _ in range(10):
 """
 
 model = train_dqn(env) # train DQN agent on the environment
+
+"""
+Evaluate the learned policy from the DQN agent.
+"""
+n_eval = 1000
+rewards = []
+
+for _ in range(n_eval):
+    obs, _ = env.reset()
+    terminated = False
+    while not terminated:
+        action, _ = model.predict(obs, deterministic=True)
+        obs, reward, terminated, truncated, info = env.step(action)
+    rewards.append(reward)
+
+print(f"DQN mean payoff: {np.mean(rewards):.2f}")
+print(f"DQN std payoff: {np.std(rewards):.2f}")
