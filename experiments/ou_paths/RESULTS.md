@@ -50,3 +50,4 @@ The speed of convergence to stationarity is governed by theta. At theta=2.0 the 
 - At what T does the process effectively reach stationarity? Plot terminal variance vs T and mark the theoretical ceiling sigma^2/(2*theta) = 0.0625
 - Contrast with GBM experiment 01: plot terminal variance vs T for both processes on the same axes to visualize bounded vs unbounded uncertainty
 - How does the half-life ln(2)/theta change the path behavior? Re-run with theta=0.5 (slow reversion) and theta=10.0 (fast reversion)
+

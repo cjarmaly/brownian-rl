@@ -26,4 +26,4 @@ def cvar(pnls, alpha=0.95):
 
     #compute VaR then average the losses beyond it
     var_threshold = var(pnls, alpha)
-    return -np.mean(pnls[pnls <= -var_threshold])
+    return -np.mean(pnls[pnls <= -var_threshold]) 
