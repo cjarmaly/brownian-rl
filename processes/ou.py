@@ -1,5 +1,9 @@
 import numpy as np
 
+"""
+Simulate Ornstein-Uhlenbeck process.
+"""
+
 def simulate_ou(X0, theta, mu, sigma, T, n_steps, n_paths):
     """
     X0: initial value

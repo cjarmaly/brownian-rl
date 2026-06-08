@@ -16,6 +16,8 @@ def bs_put_delta(S, K, T, r, sigma):
     sigma: volatility
     returns: delta
     """
+    if T <= 0:
+        return -1.0 if S < K else 0.0
     d1 = (np.log(S/K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     return norm.cdf(d1) - 1.0
 
@@ -23,6 +25,8 @@ def bs_put_price(S, K, T, r, sigma):
     """
     Black-Scholes formula for Europena put option price.
     """
+    if T <= 0:
+        return max(K - S, 0.0)
     d1 = (np.log(S/K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     return K * np.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)

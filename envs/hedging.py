@@ -27,7 +27,11 @@ class HedgingEnv(gym.Env):
         self.action_space = gym.spaces.Box(low=-1, high=0, shape=(1,), dtype=np.float32)
         
         # observation_space: [S, time_remaining, current_delta]
-        self.observation_space = gym.spaces.Box(low=np.array([0, 0, -1]), high=np.array([np.inf, T, 0]), shape=(3,), dtype=np.float32)
+        self.observation_space = gym.spaces.Box(
+            low=np.array([0, 0, -1], dtype=np.float32),
+            high=np.array([np.inf, T, 0], dtype=np.float32),
+            dtype=np.float32,
+        )
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)

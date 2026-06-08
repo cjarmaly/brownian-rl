@@ -51,7 +51,7 @@ def longstaff_schwartz(paths, K, r, dt):
             itm_indices = np.where(itm)[0]
             payoffs[itm_indices[exercise_now]] = intrinsic[exercise_now]
 
-        return np.mean(payoffs) * np.exp(r * dt) # discount back to present value
+    return np.mean(payoffs)
 
 
 
