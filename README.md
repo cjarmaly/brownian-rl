@@ -10,7 +10,7 @@ I want to be honest about where I started. To say I had a working knowledge of G
 
 The project is organized into five modules.
 
-1. Implementation of Brownian motion and Geometric Brownian Motion using NumPy. Watching the paths fan out over time, always positive, never reverting — that's what lognormal actually looks like. I then implemented the Ornstein-Uhlenbeck process, which required a time-step loop because it has no clean closed form. I wish I could promise that my experiments became sharper and sharpter, but the contrast between the two plots — GBM wandering off to infinity versus OU oscillating around its long-run mean — is the clearest visual in the entire project.
+1. Implementation of Brownian motion and Geometric Brownian Motion using NumPy. I then implemented the Ornstein-Uhlenbeck process, which required a time-step loop because it has no clean closed form. I wish I could promise that my experiments became sharper and sharper, but the contrast between the two plots — GBM wandering off to infinity versus OU oscillating around its long-run mean — is the clearest visual in the entire project.
 
 2. From there I built a Gymnasium environment for American option pricing and trained a DQN agent to solve the optimal stopping problem. The agent's job is simple: at each time step, decide whether to exercise the put or keep holding. The DQN recovered 93.3% of the Longstaff-Schwartz benchmark price ($5.62 vs $6.02) without ever being told the structure of the problem. It learned the stopping rule purely from experience. Unfortunately, this did not feel like the 'win' it likely should have. I'd prefer to do better than the LS benchmark, but I guess you can't win them all.
 
@@ -18,7 +18,7 @@ The project is organized into five modules.
 
 4. The Girsanov module. The central claim is that you can price a European put correctly by simulating paths under the real-world measure (drift $\mu$) and reweighting each path's payoff by the Radon-Nikodym derivative $L_T$. I verified this empirically: pricing under $\mathbb{P}$ gave $3.96$, reweighting by $L_T$ gave $5.59$, and Black-Scholes gave $5.57$. A 0.3% gap at 100,000 paths shows quite beautifully a mathematically dense derivation holding in practice. A win for me, albeit an expected one.
 
-5. The final module computed VaR and CVaR over the hedging P&L distributions. The key number is the CVaR/VaR ratio: 1.05 for Black-Scholes, 1.31 for the RL agent. A ratio near 1.0 means the tail is thin and well-characterized. A ratio of 1.31 means that once you breach the VaR threshold, things get meaningfully worse than VaR implies. This is exactly why modern risk frameworks (Basel III) mandate CVaR over VaR — and it's a concrete, empirical illustration of why an under-trained RL agent is not yet safe to deploy.
+5. The final module computed VaR and CVaR over the hedging P&L distributions. The key number is the CVaR/VaR ratio: 1.05 for Black-Scholes, 1.31 for the RL agent. A ratio near 1.0 means the tail is thin and well-characterized. A ratio of 1.31 means that once you breach the VaR threshold, things get meaningfully worse than VaR implies. We conclude, then, with an empirical illustration of why an under-trained RL agent is not yet safe to deploy.
 
 ---
 
@@ -26,7 +26,7 @@ The project is organized into five modules.
 
 A few results stood out.
 
-The DQN's Q-function, at convergence, approximates the Snell envelope— the smallest supermartingale dominating the payoff function. I didn't set out to verify this formally, but the numerical agreement with Longstaff-Schwartz is consistent with it. The agent learned something tangible about the structure of optimal stopping without being told what that structure was. For someone still new to deep learniing (me), this still brings about a certain astonishment.
+The DQN's Q-function, at convergence, approximates the Snell envelope— the smallest supermartingale dominating the payoff function. I didn't set out to verify this formally, but the numerical agreement with Longstaff-Schwartz is consistent with it. The agent learned something tangible about the structure of optimal stopping without being told what that structure was. For someone still new to deep learning (me), this still brings about a certain astonishment.
 
 The Girsanov verification confirmed that $\mathbb{E}[L_T] = 1.0005$ at 100,000 paths, and that the reweighted mean of $W_T$ under $\mathbb{Q}$ (-0.2523) matches the exact analytical value (-0.2500) to within 1%. These are not interesting numbers on their own, but they matter because they confirm the implementation is correct before using it to price anything.
 
