@@ -7,7 +7,7 @@ This is useful for pricing options in a different probability measure, such as t
 
 def radon_nikodym(mu, r, sigma, W_T, T):
     """
-    Radon-Nikodym derivative of P with respect to Q.
+    Radon-Nikodym derivative of Q with respect to P.
 
     mu: drift
     r: risk-free rate
