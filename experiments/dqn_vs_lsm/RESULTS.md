@@ -23,7 +23,31 @@ The 6.7% gap is attributable to two factors. First, 100k training timesteps is i
 
 Notably, the gap varies across runs due to the stochastic nature of both methods — LSM carries its own Monte Carlo error (roughly ±0.1 at 10,000 paths) and DQN payoffs have high variance (std ~9.3 from Experiment 03). The 6.7% gap should therefore be interpreted as an upper bound on true suboptimality — with more training timesteps and more evaluation episodes, it narrows.
 
+## Correction (2026-08-02, code review)
+
+The attribution above is partly wrong. Re-deriving the discount structure exposed two
+specification bugs that confound the comparison:
+
+1. **The DQN's discount factor is mis-set.** Training used `gamma=0.99` *per step* at 252
+   steps/year, an implied continuously-compounded rate of −252·ln(0.99) ≈ **2.53/yr — roughly
+   50× the model's r = 0.05**. The correct per-step factor is e^(−r·dt) ≈ 0.99980. The
+   "very early exercise" flagged above (ep_len_mean = 8.91) is therefore not evidence of
+   undertraining: the agent was *optimally* solving a problem in which waiting costs ~1% per
+   day. The policy learned the objective it was given; the objective was wrong.
+
+2. **The evaluation metric and the benchmark are different objects.** The eval loop appends
+   raw undiscounted payoffs, E[payoff(τ)], while LSM reports the discounted price
+   E[e^(−rτ)·payoff(τ)]. With r = 0.05 and T = 1, that wedge can be up to ~5% by itself
+   (smaller here because exercise happens early).
+
+Until both are fixed, the headline "DQN recovers 93.3% of LSM" is not interpretable as a
+measure of policy suboptimality.
+
 ## Open questions
 
-- [ ] Train DQN for 500k timesteps and measure gap reduction — does it
-      converge toward LSM as predicted?
+- [ ] Fix `gamma = exp(-r*dt)` in `agents/dqn.py` and retrain — does the early-exercise
+      pathology (ep_len_mean ≈ 9) disappear?
+- [ ] Discount eval rewards by e^(−r·τ·dt) in `experiments/dqn_vs_lsm/run.py` so both
+      columns of the table are prices under the same measure and numeraire.
+- [ ] Then rerun the original question: train for 500k timesteps and measure gap reduction —
+      does it converge toward LSM as predicted?

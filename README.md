@@ -2,7 +2,7 @@
 
 This project started as an attempt to understand something I kept encountering at the edges of my coursework: the idea that stochastic calculus and reinforcement learning are, in some deep sense, talking about the same thing. 
 
-I want to be honest about where I started. To say I had a working knowledge of GBM and martingales is an overstatement— my knowledge was no more than several semi-successful Clause prompts asking to explain Chapter 5 of Xinfeng Zhou's "A Practical Guide to Quanititaive Finance Interviews" in **even more** detail. I'd implemented basic Q-learning agents in college coursework previously, but I'd never thought carefully about *why* importance sampling works in off-policy RL, or what it has to do with changing probability measures. This project is my attempt to close that gap.
+I want to be honest about where I started. To say I had a working knowledge of GBM and martingales is an overstatement— my knowledge was no more than several semi-successful Claude prompts asking to explain Chapter 5 of Xinfeng Zhou's "A Practical Guide to Quantitative Finance Interviews" in **even more** detail. I'd implemented basic Q-learning agents in college coursework previously, but I'd never thought carefully about *why* importance sampling works in off-policy RL, or what it has to do with changing probability measures. This project is my attempt to close that gap.
 
 ---
 
@@ -13,6 +13,8 @@ The project is organized into five modules.
 1. Implementation of Brownian motion and Geometric Brownian Motion using NumPy. I then implemented the Ornstein-Uhlenbeck process, which required a time-step loop because it has no clean closed form. I wish I could promise that my experiments became sharper and sharper, but the contrast between the two plots — GBM wandering off to infinity versus OU oscillating around its long-run mean — is the clearest visual in the entire project.
 
 2. From there I built a Gymnasium environment for American option pricing and trained a DQN agent to solve the optimal stopping problem. The agent's job is simple: at each time step, decide whether to exercise the put or keep holding. The DQN recovered 93.3% of the Longstaff-Schwartz benchmark price ($5.62 vs $6.02) without ever being told the structure of the problem. It learned the stopping rule purely from experience. Unfortunately, this did not feel like the 'win' it likely should have. I'd prefer to do better than the LS benchmark, but I guess you can't win them all.
+
+   **Update (Aug 2026):** a code review found the real culprit behind the gap, and it wasn't undertraining. I had set `gamma=0.99` *per daily step* — an implied discount rate of −252·ln(0.99) ≈ 253%/yr, roughly 50× the model's r = 5%. The agent's suspiciously early exercise (mean episode length ~9 steps of 252) was it *optimally* solving the problem I actually gave it: one where waiting costs ~1% a day. On top of that, the evaluation compared undiscounted DQN payoffs against LSM's discounted price — two different objects. Dated correction and rerun queue in `experiments/dqn_vs_lsm/RESULTS.md`. It turns out you can win some of them back by rereading your own code.
 
 3. The hedging module— a continuous-action Gymnasium environment where a PPO agent learns how many shares to hold to neutralize option risk. The benchmark is Black-Scholes delta hedging. After 500k training timesteps, the PPO agent had a mean P&L of -0.37 compared to Black-Scholes's -2.15, but a standard deviation of 9.08 versus 1.24. The RL agent's higher mean is flattering but misleading— what matters for a hedger is variance, and by that measure Black-Scholes wins by a factor of seven. Ouch.
 
@@ -26,7 +28,7 @@ The project is organized into five modules.
 
 A few results stood out.
 
-The DQN's Q-function, at convergence, approximates the Snell envelope— the smallest supermartingale dominating the payoff function. I didn't set out to verify this formally, but the numerical agreement with Longstaff-Schwartz is consistent with it. The agent learned something tangible about the structure of optimal stopping without being told what that structure was. For someone still new to deep learning (me), this still brings about a certain astonishment.
+The DQN's Q-function, at convergence, approximates the Snell envelope— the smallest supermartingale dominating the payoff function. I didn't set out to verify this formally, but the numerical agreement with Longstaff-Schwartz is consistent with it — though per the Aug 2026 correction in Experiment 04, with the mis-set discount factor the agent was approximating the Snell envelope of a far more impatient problem than the one LSM solves. The agent learned something tangible about the structure of optimal stopping without being told what that structure was. For someone still new to deep learning (me), this still brings about a certain astonishment.
 
 The Girsanov verification confirmed that $\mathbb{E}[L_T] = 1.0005$ at 100,000 paths, and that the reweighted mean of $W_T$ under $\mathbb{Q}$ (-0.2523) matches the exact analytical value (-0.2500) to within 1%. These are not interesting numbers on their own, but they matter because they confirm the implementation is correct before using it to price anything.
 
@@ -45,13 +47,15 @@ The somewhat deflating punchline is that neither of our agents actually computes
 ---
 
 ## What I'd Do Next
-Three things, in order of how much they irk me.
+Four things, in order of how much they irk me.
 
-1. The PPO agent optimizes for mean P&L, which is the wrong objective for a hedger. Variance is what kills you! Adding $-\lambda \cdot |\text{P\&L}|$ to the reward is a straightforward fix I didn't get to. I suspect it would meaningfully close the CVaR gap.
+1. Fix the DQN's objective: `gamma = exp(-r*dt)` instead of 0.99, and discount evaluation payoffs by $e^{-r\tau}$ so the comparison to LSM is apples-to-apples. A 50× discounting error is the most instructive bug I've shipped — the agent did exactly what I asked, which is the problem.
 
-2. The replay buffer in DQN is doing a lot of work it shouldn't have to do. Computing LT​ for each stored trajectory and reweighting explicitly would be a cleaner implementation of what the buffer approximates crudely. Whether it actually helps convergence is an open question.
+2. The PPO agent optimizes for mean P&L, which is the wrong objective for a hedger. Variance is what kills you! Adding $-\lambda \cdot |\text{P\&L}|$ to the reward is a straightforward fix I didn't get to. I suspect it would meaningfully close the CVaR gap.
 
-3. Finally, the whole project is built under Black-Scholes assumptions. Not only does this hand the analytical benchmark an unfair advantage, if there is one thing I've learned from Dan Rasmussen, it is to be weary of utopian frameworks. No transaction costs, constant volatility, daily rebalancing. Add costs and the RL agent's flexibility might start to tip the scales the other direction.
+3. The replay buffer in DQN is doing a lot of work it shouldn't have to do. Computing LT​ for each stored trajectory and reweighting explicitly would be a cleaner implementation of what the buffer approximates crudely. Whether it actually helps convergence is an open question.
+
+4. Finally, the whole project is built under Black-Scholes assumptions. Not only does this hand the analytical benchmark an unfair advantage, if there is one thing I've learned from Dan Rasmussen, it is to be wary of utopian frameworks. No transaction costs, constant volatility, daily rebalancing. Add costs and the RL agent's flexibility might start to tip the scales the other direction.
 
 ---
 
@@ -72,11 +76,11 @@ brownian-rl/
 │   └── ou.py             # Ornstein-Uhlenbeck process
 ├── envs/
 │   ├── american_option.py  # Gymnasium env for optimal stopping
-│   └── hedging_env.py      # Gymnasium env for delta hedging
+│   └── hedging.py          # Gymnasium env for delta hedging
 ├── agents/
 │   ├── dqn.py              # DQN training
 │   ├── ppo.py              # PPO training and evaluation
-│   ├── longstaff_schwartz.py  # LSM benchmark
+│   ├── ls.py               # Longstaff-Schwartz (LSM) benchmark
 │   ├── delta_hedge.py      # Black-Scholes delta and price
 │   └── girsanov.py         # Radon-Nikodym derivative
 ├── risk/
