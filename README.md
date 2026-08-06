@@ -32,10 +32,14 @@ A few results stood out.
 
 The DQN's Q-function, at convergence, approximates the Snell envelope— the smallest supermartingale dominating the payoff function. I didn't set out to verify this formally, but the numerical agreement with Longstaff-Schwartz is consistent with it — though per the Aug 2026 correction in Experiment 04, with the mis-set discount factor the agent was approximating the Snell envelope of a far more impatient problem than the one LSM solves. The agent learned something tangible about the structure of optimal stopping without being told what that structure was. For someone still new to deep learning (me), this still brings about a certain astonishment.
 
-The Girsanov verification confirmed that $\mathbb{E}[L_T] = 1.0005$ at 100,000 paths, and that the reweighted mean of $W_T$ under $\mathbb{Q}$ (-0.2523) matches the exact analytical value (-0.2500) to within 1%. These are not interesting numbers on their own, but they matter because they confirm the implementation is correct before using it to price anything.
+On the other hand, the PPO agent appeared to beat the BS hedge on mean, but. a hedger should not beat the hedge. We found that the agent simply was not hedging (-0.37, std 9.08) was statistically indistinguishable from the never-hedge strategy (-0.25, sigma 8.94).
 
-The most practically interesting result is probably the CVaR gap. An RL agent that looks competitive on mean P&L can have tail risk nearly five times worse than the benchmark. That's the kind of thing that gets missed if you only look at average performance, highlighting the danger of overfitting models to a single performance metric.
+Regressing the agent
+s P&L on terminal return (R^2 = 0.61) and on realized variance (R^2=0.001) suggested this was not an alpha capturing agent.
 
+The root cause? Our specifications paid no interest on short-sale proceeds, so hedging bled the risk-neutral drift without interest compensation. Our BS benchmark was wrong.
+
+After adding the financing term on the cash account in evs/hedging.py, we found that the BS benchmark went from (-2.11, sigma 1.2) -> (-0.28, sigma 0.48). So the financed, full hedge achieves 19x lower sigma that our trained PPO agent. Next step is to retrain our agent on the proper specs!
 ---
 
 ## The Connection I Was Looking For

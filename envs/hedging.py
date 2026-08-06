@@ -56,8 +56,9 @@ class HedgingEnv(gym.Env):
 
         # Compute P&L
         stock_pnl = (S_curr - S_prev) * self.hedge_ratio
+        accrued = - (self.hedge_ratio * S_prev) * (np.exp(self.r * self.dt) -1)
         put_pnl = bs_put_price(S_curr, self.K, T_remaining, self.r, self.sigma) - bs_put_price(S_prev, self.K, T_remaining + self.dt, self.r, self.sigma)
-        reward = stock_pnl - put_pnl
+        reward = stock_pnl - put_pnl + accrued
 
         # compute next delta
         delta = 0 if T_remaining == 0 else bs_put_delta(S_curr, self.K, T_remaining, self.r, self.sigma)
