@@ -43,3 +43,34 @@ The correct metric for hedging quality is not mean P&L but P&L variance — a pe
       P&L offset its higher variance relative to BS?
 - [ ] explained_variance=0.107 after 500k steps is low — would a larger
       network (e.g., 256x256 vs 64x64) improve convergence?
+
+---
+
+## Addendum (Aug 5, 2026): P&L attribution — the agent didn't hedge, and the "cost of hedging" was my accounting
+
+A P&L attribution run (`attribution.py`) found that the analysis above gets the *variance* story right and the *mean* story wrong. Since `run.py` doesn't save a checkpoint, the mechanism was tested with alpha-scaled BS hedges (h = α·Δ_BS) under the env's exact accounting; α=1.0 reproduces the saved `bs_pnls` to the second decimal, validating the harness.
+
+| α (hedge fraction) | financing | mean P&L | std |
+|---|---|---|---|
+| 1.0 (full BS hedge) | no | −2.17 | 1.24 |
+| 0.8 | no | −1.79 | 2.58 |
+| 0.5 | no | −1.21 | 4.92 |
+| 0.2 | no | −0.63 | 7.33 |
+| **0.0 (no hedge at all)** | no | **−0.25** | **8.94** |
+| **1.0 + interest on short proceeds** | yes | **−0.29** | **0.50** |
+
+Trained agent, for comparison: mean **−0.37**, std **9.08**.
+
+Three findings:
+
+1. **The agent's profile is statistically indistinguishable from not hedging.** (−0.37, 9.08) vs (−0.25, 8.94). Five hundred thousand timesteps to learn "do nothing" — but see finding 2, because doing nothing was the *correct* answer to the question I actually asked.
+2. **The BS hedge's −2.15 mean is not "the irreducible cost of discrete time" claimed above — it's a missing cash account.** The env pays no interest on short-stock proceeds, so the hedge position bleeds the risk-neutral drift uncompensated (≈ h̄·S·r ≈ −2/yr, which is the whole number). Add the financing term and the full hedge goes to (−0.29, 0.50): hedging becomes free and cuts P&L variance ~18× relative to the agent. Discretization contributes variance, not mean. PPO didn't find alpha; it correctly maximized a mis-specified reward.
+3. **The residual exposure is directional, not gamma.** Episode P&L on an under-hedged book regresses on terminal return with R² ≈ 0.61 and on realized variance with R² ≈ 0.001. And since the env simulates at μ = r, there was never a μ − r premium available by construction.
+
+This is the second time in this project an agent's "failure" was it doing exactly what I asked (see Experiment 04's γ = 0.99). The pattern generalizes better than either instance: before blaming the agent, price the objective.
+
+### Revised next steps
+
+1. Add a cash account at r to `envs/hedging.py` (this supersedes — and reorders ahead of — the variance-penalty fix above; with financing in place, λ·|P&L| then targets genuine hedge error rather than fighting the drift bleed)
+2. Retrain PPO on the financed reward; the interesting question becomes whether it converges toward Δ_BS or finds discrete-hedging improvements near expiry
+3. Rerun Experiment 07's VaR/CVaR on the financed books
